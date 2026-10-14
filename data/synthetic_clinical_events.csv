@@ -1,0 +1,19 @@
+case_id,activity,timestamp
+C001,Registration,2026-09-01 08:00:00
+C001,Initial Assessment,2026-09-01 08:30:00
+C001,Lab Test,2026-09-01 09:15:00
+C001,Diagnosis,2026-09-01 10:00:00
+C001,Treatment,2026-09-01 11:00:00
+C001,Discharge,2026-09-01 13:00:00
+C002,Registration,2026-09-02 09:00:00
+C002,Initial Assessment,2026-09-02 09:45:00
+C002,Lab Test,2026-09-02 10:30:00
+C002,Diagnosis,2026-09-02 12:00:00
+C002,Treatment,2026-09-02 13:00:00
+C002,Discharge,2026-09-02 15:30:00
+C003,Registration,2026-09-03 08:15:00
+C003,Initial Assessment,2026-09-03 09:00:00
+C003,Lab Test,2026-09-03 10:00:00
+C003,Diagnosis,2026-09-03 10:45:00
+C003,Treatment,2026-09-03 12:30:00
+C003,Discharge,2026-09-03 14:00:00
