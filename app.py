@@ -50,9 +50,45 @@ with right:
     for case_id, group in df.groupby("case_id"):
         sequence = " → ".join(group["activity"].astype(str))
         st.write(f"**{case_id}:** {sequence}")
+        
+# Data Quality Checks
+st.subheader("Data Quality Checks")
+
+required_columns = {"case_id", "activity", "timestamp"}
+missing_columns = required_columns - set(df.columns)
+
+if missing_columns:
+    st.error(f"Missing required columns: {sorted(missing_columns)}")
+else:
+    missing_ids = int(df["case_id"].isna().sum())
+    missing_activities = int(df["activity"].isna().sum())
+
+    parsed_timestamps = pd.to_datetime(
+        df["timestamp"], errors="coerce"
+    )
+    invalid_timestamps = int(parsed_timestamps.isna().sum())
+    duplicate_rows = int(df.duplicated().sum())
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Missing Case IDs", missing_ids)
+    col2.metric("Missing Activities", missing_activities)
+    col3.metric("Invalid Timestamps", invalid_timestamps)
+    col4.metric("Duplicate Rows", duplicate_rows)
+
+    if (
+        missing_ids == 0
+        and missing_activities == 0
+        and invalid_timestamps == 0
+        and duplicate_rows == 0
+    ):
+        st.success("Data quality check passed!")
+    else:
+        st.warning("Data quality issues detected. Please review the results.")
+
 
 st.subheader("Synthetic Event Log")
-st.dataframe(df, use_container_width=True)
+st.dataframe(df, width="stretch")
 
 st.download_button(
     "Download CSV",
