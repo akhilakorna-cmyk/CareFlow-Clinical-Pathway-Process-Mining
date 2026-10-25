@@ -46,14 +46,12 @@ except (OSError, pd.errors.ParserError) as error:
     st.error(f"Could not read the dataset: {error}")
     st.stop()
 
-# Check required columns before analysis
+# Validate required columns
 required_columns = {"case_id", "activity", "timestamp"}
 missing_columns = required_columns - set(df.columns)
 
 if missing_columns:
-    st.error(
-        f"Missing required columns: {sorted(missing_columns)}"
-    )
+    st.error(f"Missing required columns: {sorted(missing_columns)}")
     st.stop()
 
 # Preserve original data for quality checks
@@ -70,7 +68,7 @@ missing_activities = int(df["activity"].isna().sum())
 invalid_timestamps = int(df["timestamp"].isna().sum())
 duplicate_rows = int(raw_df.duplicated().sum())
 
-# Remove invalid events for subsequent analysis
+# Remove invalid events from analysis
 df = df.dropna(
     subset=["case_id", "activity", "timestamp"]
 ).copy()
@@ -80,10 +78,7 @@ df = df.sort_values(
 ).reset_index(drop=True)
 
 if df.empty:
-    st.error(
-        "No valid events are available for analysis. "
-        "Please check the dataset."
-    )
+    st.error("No valid events are available for analysis.")
     st.stop()
 
 # --------------------------------------------------
@@ -99,8 +94,7 @@ case_durations = (
 )
 
 case_durations["hours"] = (
-    case_durations["end_time"]
-    - case_durations["start_time"]
+    case_durations["end_time"] - case_durations["start_time"]
 ).dt.total_seconds() / 3600
 
 average_duration = case_durations["hours"].mean()
@@ -142,9 +136,7 @@ with right:
     st.subheader("Clinical Activity Sequences")
 
     for case_id, group in df.groupby("case_id"):
-        sequence = " → ".join(
-            group["activity"].astype(str)
-        )
+        sequence = " → ".join(group["activity"].astype(str))
         st.write(f"**{case_id}:** {sequence}")
 
 # --------------------------------------------------
@@ -195,10 +187,7 @@ with left:
         duration_summary["case_duration_hours"].idxmax()
     ]
 
-    st.metric(
-        "Case ID",
-        str(longest_case["case_id"]),
-    )
+    st.metric("Case ID", str(longest_case["case_id"]))
 
     st.write(
         "Duration: "
@@ -211,14 +200,10 @@ with right:
     average_gap = events["gap_hours"].mean()
 
     if pd.notna(average_gap):
-        st.metric(
-            "Average Event Gap",
-            f"{average_gap:.2f} hours",
-        )
+        st.metric("Average Event Gap", f"{average_gap:.2f} hours")
     else:
         st.metric("Average Event Gap", "Not available")
 
-# Activity summary
 st.markdown("**Activity Summary**")
 
 st.dataframe(
@@ -228,9 +213,9 @@ st.dataframe(
 )
 
 # --------------------------------------------------
-# 8. POTENTIAL DELAY DETECTION
+# 8. POTENTIAL DELAY DETECTION AND CHART
 # --------------------------------------------------
-st.markdown("**Potential Delay Detection**")
+st.subheader("Potential Delay Detection")
 
 threshold_hours = st.slider(
     "Delay threshold (hours)",
@@ -254,10 +239,27 @@ else:
     st.write(f"Potential delays detected: {len(delays)}")
 
     st.dataframe(
-    delays,
-    width="stretch",
-    hide_index=True,
-)
+        delays,
+        width="stretch",
+        hide_index=True,
+    )
+
+    # Delay Analysis Chart
+    st.markdown("### Delay Analysis Chart")
+
+    delay_chart = delays.copy()
+
+    delay_chart["Activity Transition"] = (
+        delay_chart["from_activity"].astype(str)
+        + " → "
+        + delay_chart["to_activity"].astype(str)
+    )
+
+    st.bar_chart(
+        delay_chart.set_index("Activity Transition")["gap_hours"],
+        y_label="Time Gap (Hours)",
+    )
+
 # --------------------------------------------------
 # 9. SYNTHETIC EVENT LOG AND CSV DOWNLOAD
 # --------------------------------------------------
