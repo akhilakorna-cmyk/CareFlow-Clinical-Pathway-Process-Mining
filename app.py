@@ -254,11 +254,10 @@ else:
     st.write(f"Potential delays detected: {len(delays)}")
 
     st.dataframe(
-        delays,
-        width="stretch",
-        hide_index=True,
-    )
-
+    delays,
+    width="stretch",
+    hide_index=True,
+)
 # --------------------------------------------------
 # 9. SYNTHETIC EVENT LOG AND CSV DOWNLOAD
 # --------------------------------------------------
