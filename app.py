@@ -6,552 +6,682 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# ---------------------------------------------------------
-# CAREFLOW | CLINICAL PATHWAY INTELLIGENCE
-# Academic demonstration using synthetic data only
-# ---------------------------------------------------------
-
 st.set_page_config(
-    page_title="CareFlow | Clinical Intelligence",
-    page_icon="✚",
+    page_title="CareFlow | Clinical Pathway Process Mining",
+    page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-NAVY = "#17324D"
-TEAL = "#139C96"
-MUTED = "#64748B"
-BG = "#F4F7FB"
+NAVY = "#0B1220"
+PANEL = "#111C30"
+TEAL = "#14B8A6"
+MUTED = "#9AAAC0"
+BORDER = "#2A3A52"
+DELAY_THRESHOLD = 2.0
 
 st.markdown(
     f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 
     html, body, [class*="css"] {{
         font-family: 'DM Sans', sans-serif;
     }}
-    .stApp {{ background: {BG}; }}
+    .stApp {{
+        background: radial-gradient(ellipse at top left,
+        rgba(20,184,166,0.09), transparent 38%), #0B1220;
+        color: #F1F5F9;
+    }}
+    [data-testid="stHeader"] {{ background: #0B1220; }}
     [data-testid="stSidebar"] {{
-        background: {NAVY};
-        border-right: 1px solid #284761;
+        background: linear-gradient(180deg, #111C30, #0B1220);
+        border-right: 1px solid {BORDER};
     }}
-    [data-testid="stSidebar"] * {{ color: #F4F8FC; }}
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {{
-        color: #D8E5F0;
-    }}
+    [data-testid="stSidebar"] * {{ color: #F1F5F9; }}
     .brand {{
-        font-size: 27px; font-weight: 700; letter-spacing: -1px;
-        color: white; padding: 8px 0 0 0;
+        font-size: 29px; font-weight: 800; color: white;
     }}
     .brand-sub {{
-        color: #B7CBDC; font-size: 11px; letter-spacing: 2px;
-        text-transform: uppercase; margin-bottom: 25px;
+        color: {MUTED}; font-size: 10px;
+        letter-spacing: 1.6px; margin-bottom: 18px;
     }}
     .eyebrow {{
-        color: {TEAL}; font-size: 11px; font-weight: 700;
-        letter-spacing: 1.8px; text-transform: uppercase;
+        color: {TEAL}; font-size: 11px;
+        font-weight: 800; letter-spacing: 2px;
     }}
     .page-title {{
-        color: {NAVY}; font-size: 31px; font-weight: 700;
-        letter-spacing: -1px; margin: 0 0 4px 0;
+        color: #F8FAFC; font-size: 32px;
+        font-weight: 800; margin: 4px 0;
     }}
     .page-subtitle {{ color: {MUTED}; font-size: 14px; }}
     .demo-banner {{
-        background: #FFF8E8; border: 1px solid #F1D59A;
-        color: #805B13; padding: 11px 15px; border-radius: 9px;
-        font-size: 12px; margin: 12px 0 22px 0;
+        background: rgba(251,191,36,0.08);
+        border: 1px solid #705A2C; color: #FDE68A;
+        padding: 12px 16px; border-radius: 10px;
+        font-size: 12px; margin: 16px 0 24px;
     }}
     .section-title {{
-        color: {NAVY}; font-size: 17px; font-weight: 700;
-        margin-bottom: 2px;
+        color: #F1F5F9; font-size: 19px;
+        font-weight: 700; margin: 8px 0;
     }}
-    .section-note {{ color: {MUTED}; font-size: 12px; margin-bottom: 12px; }}
+    .section-note {{
+        color: {MUTED}; font-size: 12px;
+        margin-bottom: 12px;
+    }}
     div[data-testid="stMetric"] {{
-        background: white; border: 1px solid #E2E8F0;
-        padding: 17px 18px; border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(23,50,77,0.035);
+        background: linear-gradient(145deg, #17263D, {PANEL});
+        border: 1px solid {BORDER}; border-radius: 14px;
+        padding: 18px; min-height: 105px;
     }}
-    div[data-testid="stMetricLabel"] p {{
-        color: {MUTED}; font-size: 12px; font-weight: 600;
-    }}
+    div[data-testid="stMetricLabel"] p {{ color: #A8B7CA; }}
     div[data-testid="stMetricValue"] {{
-        color: {NAVY}; font-weight: 700;
+        color: #F8FAFC; font-weight: 800;
     }}
     div[data-testid="stPlotlyChart"] {{
-        background: white; border: 1px solid #E2E8F0;
-        border-radius: 12px; padding: 8px;
+        background: {PANEL}; border: 1px solid {BORDER};
+        border-radius: 14px; padding: 8px;
+    }}
+    [data-testid="stDataFrame"] {{
+        border: 1px solid {BORDER}; border-radius: 11px;
+    }}
+    .stDownloadButton > button {{
+        background: {TEAL}; color: #062A2A;
+        border-radius: 9px; font-weight: 700;
     }}
     .footer {{
-        color: #8492A6; font-size: 11px; text-align: center;
-        padding: 24px 0 8px 0;
+        color: #8492A6; font-size: 11px;
+        text-align: center; padding: 24px 0 8px;
     }}
-    hr {{ border-color: #E2E8F0; }}
+    hr {{ border-color: {BORDER}; }}
+    #MainMenu, footer {{ visibility: hidden; }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# ---------- Data loading ----------
+# DATA LOADING
+PROJECT_DIR = Path(__file__).resolve().parent
+DATA_FILE = PROJECT_DIR / "data" / "synthetic_clinical_events.csv"
 
-ROOT = Path(__file__).resolve().parent
-DATA_CANDIDATES = [
-    ROOT / "data" / "synthetic_clinical_events.csv",
-    ROOT / "data" / "clinical_events.csv",
-    ROOT / "synthetic_clinical_events.csv",
-]
 
 @st.cache_data
-def load_events(file_path: str) -> pd.DataFrame:
+def load_data(file_path):
     data = pd.read_csv(file_path)
+    data.columns = (
+        data.columns.astype(str)
+        .str.strip()
+        .str.lower()
+        .str.replace(" ", "_")
+    )
+
     required = {"case_id", "activity", "timestamp"}
     missing = required - set(data.columns)
+
     if missing:
         raise ValueError(
-            "Missing required column(s): " + ", ".join(sorted(missing))
+            "Missing columns: " + ", ".join(sorted(missing))
         )
 
-    data = data.copy()
+    data["timestamp"] = pd.to_datetime(
+        data["timestamp"], errors="coerce"
+    )
     data["case_id"] = data["case_id"].astype("string").str.strip()
     data["activity"] = data["activity"].astype("string").str.strip()
-    data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce")
-    data = data.dropna(subset=["case_id", "activity", "timestamp"])
-    data = data.sort_values(["case_id", "timestamp"]).reset_index(drop=True)
-    return data
 
-data_path = next((p for p in DATA_CANDIDATES if p.exists()), None)
+    return data.sort_values(
+        ["case_id", "timestamp"], na_position="last"
+    ).reset_index(drop=True)
 
-with st.sidebar:
-    st.markdown('<div class="brand">✚ CareFlow</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="brand-sub">Clinical Pathway Intelligence</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown("---")
-    page = st.radio(
-        "WORKSPACE",
-        [
-            "Executive Overview",
-            "Pathway Explorer",
-            "Delay Analysis",
-            "Data Quality",
-            "Event Log",
-        ],
-        label_visibility="visible",
-    )
-    st.markdown("---")
-    st.caption("INFOTACT SOLUTIONS")
-    st.caption("Academic demonstration • Synthetic data")
 
-if data_path is None:
-    st.error(
-        "Dataset not found. Expected `data/synthetic_clinical_events.csv` "
-        "inside your project folder."
-    )
+if not DATA_FILE.exists():
+    st.error(f"Dataset not found: {DATA_FILE}")
+    st.info("Put synthetic_clinical_events.csv in the data folder.")
     st.stop()
 
 try:
-    df = load_events(str(data_path))
-except Exception as exc:
-    st.error(f"Could not load the event log: {exc}")
+    df = load_data(str(DATA_FILE))
+except Exception as error:
+    st.error(f"Could not load data: {error}")
     st.stop()
 
-if df.empty:
-    st.warning("The dataset has no valid event rows to display.")
+valid_events = df.dropna(
+    subset=["case_id", "activity", "timestamp"]
+).copy()
+
+valid_events = valid_events[
+    valid_events["case_id"].ne("")
+    & valid_events["activity"].ne("")
+].copy()
+
+valid_events = valid_events.sort_values(
+    ["case_id", "timestamp"]
+).reset_index(drop=True)
+
+if valid_events.empty:
+    st.error("No valid events are available.")
     st.stop()
 
-# ---------- Process metrics ----------
 
-case_summary = (
-    df.groupby("case_id")
-    .agg(
-        start_time=("timestamp", "min"),
-        end_time=("timestamp", "max"),
-        event_count=("activity", "size"),
-    )
-    .reset_index()
-)
-case_summary["duration_hours"] = (
-    case_summary["end_time"] - case_summary["start_time"]
-).dt.total_seconds() / 3600
-
-activity_summary = (
-    df.groupby("activity")
-    .agg(event_count=("activity", "size"), case_count=("case_id", "nunique"))
-    .reset_index()
-    .sort_values("event_count", ascending=True)
-)
-
-df["previous_activity"] = df.groupby("case_id")["activity"].shift(1)
-df["previous_timestamp"] = df.groupby("case_id")["timestamp"].shift(1)
-df["gap_hours"] = (
-    df["timestamp"] - df["previous_timestamp"]
-).dt.total_seconds() / 3600
-
-transitions = df.dropna(subset=["previous_activity"]).copy()
-transitions = transitions.rename(
-    columns={
-        "previous_activity": "from_activity",
-        "activity": "to_activity",
-    }
-)
-
-# ---------- Reusable chart styling ----------
-
+# HELPER FUNCTIONS
 def style_chart(fig, height=330):
     fig.update_layout(
         height=height,
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        font=dict(family="DM Sans, sans-serif", color=NAVY, size=12),
-        margin=dict(l=18, r=18, t=38, b=18),
-        title_font=dict(size=15, color=NAVY),
-        showlegend=False,
+        paper_bgcolor=PANEL,
+        plot_bgcolor=PANEL,
+        font=dict(family="DM Sans", color="#F1F5F9", size=12),
+        margin=dict(l=18, r=24, t=48, b=22),
+        title_font=dict(size=15, color="#F8FAFC"),
+        legend=dict(font=dict(color="#D7E2F0")),
     )
-    fig.update_xaxes(showgrid=False, linecolor="#E2E8F0", zeroline=False)
-    fig.update_yaxes(
-        gridcolor="#EDF1F6",
-        linecolor="rgba(0,0,0,0)",
-        zeroline=False,
-    )
+    fig.update_xaxes(showgrid=False, linecolor=BORDER)
+    fig.update_yaxes(gridcolor="#25344A")
     return fig
 
-def section_heading(title, note=None):
-    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
-    if note:
-        st.markdown(f'<div class="section-note">{note}</div>', unsafe_allow_html=True)
 
-def page_header(title, subtitle):
-    st.markdown('<div class="eyebrow">CAREFLOW ANALYTICS</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="page-title">{title}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="page-subtitle">{subtitle}</div>', unsafe_allow_html=True)
+def section_header(title, note=None):
     st.markdown(
-        '<div class="demo-banner">⚠ DEMO ENVIRONMENT — Synthetic event data only. '
-        'No real patient records are used.</div>',
+        f'<div class="section-title">{title}</div>',
         unsafe_allow_html=True,
     )
+    if note:
+        st.markdown(
+            f'<div class="section-note">{note}</div>',
+            unsafe_allow_html=True,
+        )
 
-# ---------- Pages ----------
 
-if page == "Executive Overview":
-    page_header(
-        "Clinical Pathway Overview",
-        "A consolidated view of workflow activity, case duration and potential delays.",
+def make_case_durations(data):
+    result = data.groupby("case_id")["timestamp"].agg(
+        start_time="min", end_time="max"
+    ).reset_index()
+
+    result["duration_hours"] = (
+        result["end_time"] - result["start_time"]
+    ).dt.total_seconds() / 3600
+
+    return result
+
+
+def add_gaps(data):
+    result = data.sort_values(["case_id", "timestamp"]).copy()
+    result["previous_activity"] = (
+        result.groupby("case_id")["activity"].shift(1)
+    )
+    result["previous_timestamp"] = (
+        result.groupby("case_id")["timestamp"].shift(1)
+    )
+    result["gap_hours"] = (
+        result["timestamp"] - result["previous_timestamp"]
+    ).dt.total_seconds() / 3600
+    return result
+
+
+# SHARED FILTERS
+with st.sidebar:
+    st.markdown(
+        '<div class="brand">CareFlow<span style="color:#14B8A6">.</span></div>'
+        '<div class="brand-sub">INFOTACT SOLUTIONS</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("---")
+    st.markdown("**ONE-PAGE DASHBOARD**")
+    st.caption("Scroll the page to see every section.")
+    st.markdown("---")
+
+    all_cases = sorted(valid_events["case_id"].unique().tolist())
+    all_activities = sorted(valid_events["activity"].unique().tolist())
+
+    selected_cases = st.multiselect(
+        "Clinical cases", all_cases, default=all_cases
+    )
+    selected_activities = st.multiselect(
+        "Activities", all_activities, default=all_activities
     )
 
-    a, b, c, d = st.columns(4)
-    a.metric("Total Cases", f"{df['case_id'].nunique():,}")
-    b.metric("Total Events", f"{len(df):,}")
-    c.metric("Unique Activities", f"{df['activity'].nunique():,}")
-    d.metric("Mean Case Duration", f"{case_summary['duration_hours'].mean():.2f} h")
+    min_date = valid_events["timestamp"].min().date()
+    max_date = valid_events["timestamp"].max().date()
 
-    st.write("")
-    left, right = st.columns([1.55, 1])
+    date_range = st.date_input(
+        "Event date range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date,
+    )
 
-    with left:
-        section_heading(
-            "Case Duration Comparison",
-            "Elapsed time between the first and last recorded event in each case.",
-        )
-        duration_fig = px.bar(
-            case_summary.sort_values("case_id"),
-            x="case_id",
-            y="duration_hours",
-            text=case_summary.sort_values("case_id")["duration_hours"].map(
-                lambda value: f"{value:.2f} h"
-            ),
-            labels={"case_id": "Case", "duration_hours": "Duration (hours)"},
-            color_discrete_sequence=[TEAL],
-        )
-        duration_fig.update_traces(textposition="outside", cliponaxis=False)
-        st.plotly_chart(style_chart(duration_fig, 340), use_container_width=True)
+    st.markdown("---")
+    st.caption("Synthetic demonstration data only.")
 
-    with right:
-        section_heading(
-            "Activity Volume",
-            "Recorded event count by clinical activity.",
-        )
-        activity_fig = px.bar(
-            activity_summary,
+events = valid_events.copy()
+
+events = events[events["case_id"].isin(selected_cases)]
+events = events[events["activity"].isin(selected_activities)]
+
+if isinstance(date_range, (tuple, list)) and len(date_range) == 2:
+    start = pd.Timestamp(date_range[0])
+    end = pd.Timestamp(date_range[1]) + pd.Timedelta(days=1)
+    events = events[
+        (events["timestamp"] >= start)
+        & (events["timestamp"] < end)
+    ]
+
+events = events.sort_values(
+    ["case_id", "timestamp"]
+).reset_index(drop=True)
+
+durations = make_case_durations(events)
+
+activity_summary = (
+    events.groupby("activity")
+    .agg(
+        event_count=("activity", "size"),
+        case_count=("case_id", "nunique"),
+    )
+    .reset_index()
+    .sort_values("event_count", ascending=False)
+)
+
+gaps = add_gaps(events)
+
+# =========================================================
+# DASHBOARD HEADER
+# =========================================================
+
+st.markdown(
+    '<div class="eyebrow">CAREFLOW / INFOTACT SOLUTIONS</div>'
+    '<div class="page-title">Clinical Pathway Process Mining</div>'
+    '<div class="page-subtitle">One-page clinical pathway overview, '
+    'journeys, delays, data quality, and event records.</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="demo-banner">
+    <strong>DEMO ONLY</strong> — Synthetic data, not real patient records.
+    Findings are illustrative and must not be used for clinical decisions.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+if events.empty:
+    st.warning("No events match the current filters. Change the sidebar filters.")
+
+# =========================================================
+# 01. EXECUTIVE OVERVIEW
+# =========================================================
+
+st.markdown("---")
+section_header(
+    "01 · Executive Overview",
+    "Summary metrics and process indicators.",
+)
+
+avg_duration = (
+    durations["duration_hours"].mean()
+    if not durations.empty else 0
+)
+
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Total Cases", f"{events['case_id'].nunique():,}")
+c2.metric("Total Events", f"{len(events):,}")
+c3.metric("Unique Activities", f"{events['activity'].nunique():,}")
+c4.metric("Average Case Duration", f"{avg_duration:.2f} h")
+
+left, right = st.columns(2)
+
+with left:
+    section_header("Activity Volume", "Recorded events per activity.")
+    if not activity_summary.empty:
+        fig = px.bar(
+            activity_summary.sort_values("event_count"),
             x="event_count",
             y="activity",
             orientation="h",
             text="event_count",
-            labels={"event_count": "Events", "activity": ""},
-            color_discrete_sequence=[NAVY],
+            color_discrete_sequence=[TEAL],
+            labels={"event_count": "Events", "activity": "Activity"},
         )
-        activity_fig.update_traces(textposition="outside", cliponaxis=False)
-        st.plotly_chart(style_chart(activity_fig, 340), use_container_width=True)
-
-    section_heading("Operational Signals", "A quick look at longer gaps between recorded activities.")
-    threshold = st.slider("Flag gaps of at least (hours)", 0.5, 8.0, 2.0, 0.5)
-    flagged = transitions[transitions["gap_hours"] >= threshold].copy()
-    if flagged.empty:
-        st.success("No activity gaps meet the selected threshold.")
+        fig.update_traces(textposition="outside", cliponaxis=False)
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(
+            style_chart(fig, 340), use_container_width=True
+        )
     else:
-        st.dataframe(
-            flagged[
-                ["case_id", "from_activity", "to_activity", "gap_hours", "timestamp"]
-            ].rename(
-                columns={
-                    "case_id": "Case",
-                    "from_activity": "From",
-                    "to_activity": "To",
-                    "gap_hours": "Gap (hours)",
-                    "timestamp": "Event timestamp",
-                }
-            ),
-            hide_index=True,
-            width="stretch",
-        )
+        st.info("No activity data available.")
 
-elif page == "Pathway Explorer":
-    page_header(
-        "Pathway Explorer",
-        "Explore recorded activity sequences and how often each activity appears.",
+with right:
+    section_header("Case Duration", "Elapsed time per case.")
+    if not durations.empty:
+        fig = px.bar(
+            durations,
+            x="case_id",
+            y="duration_hours",
+            text="duration_hours",
+            color_discrete_sequence=[TEAL],
+            labels={
+                "case_id": "Case",
+                "duration_hours": "Hours",
+            },
+        )
+        fig.update_traces(
+            texttemplate="%{text:.2f} h",
+            textposition="outside",
+            cliponaxis=False,
+        )
+        st.plotly_chart(
+            style_chart(fig, 340), use_container_width=True
+        )
+    else:
+        st.info("No case durations available.")
+
+overview_delays = gaps[gaps["gap_hours"] >= DELAY_THRESHOLD]
+longest_gap = (
+    overview_delays["gap_hours"].max()
+    if not overview_delays.empty else 0
+)
+
+d1, d2 = st.columns(2)
+d1.metric("Potential Delay Gaps (≥ 2 h)", len(overview_delays))
+d2.metric("Longest Gap", f"{longest_gap:.2f} h")
+
+if not overview_delays.empty:
+    st.dataframe(
+        overview_delays[
+            ["case_id", "previous_activity", "activity", "gap_hours", "timestamp"]
+        ].rename(columns={
+            "case_id": "Case ID",
+            "previous_activity": "Previous Activity",
+            "activity": "Current Activity",
+            "gap_hours": "Gap (hours)",
+            "timestamp": "Current Event Time",
+        }),
+        use_container_width=True,
+        hide_index=True,
     )
-    case_options = sorted(df["case_id"].dropna().unique().tolist())
-    selected_case = st.selectbox("Select a case", case_options)
-    journey = df[df["case_id"] == selected_case].sort_values("timestamp")
 
-    section_heading("Recorded Journey", f"{len(journey)} events for case {selected_case}")
-    nodes = journey["activity"].tolist()
+# =========================================================
+# 02. PATHWAY EXPLORER
+# =========================================================
 
-    if nodes:
-        flow = go.Figure()
-        for i, activity in enumerate(nodes):
-            flow.add_trace(
-                go.Scatter(
-                    x=[i],
-                    y=[0],
-                    mode="markers+text",
-                    marker=dict(size=30, color=TEAL if i == 0 else NAVY),
-                    text=[activity],
-                    textposition="bottom center",
-                    textfont=dict(size=11, color=NAVY),
-                    hovertemplate=f"Step {i + 1}: {activity}<extra></extra>",
-                    showlegend=False,
-                )
-            )
-            if i < len(nodes) - 1:
-                flow.add_annotation(
-                    x=i + 0.5,
-                    y=0,
-                    ax=i,
-                    ay=0,
-                    xref="x",
-                    yref="y",
-                    axref="x",
-                    ayref="y",
-                    text="",
-                    showarrow=True,
-                    arrowhead=2,
-                    arrowsize=1,
-                    arrowwidth=1.5,
-                    arrowcolor="#9AAABD",
-                )
-        flow.update_layout(
-            height=220,
-            paper_bgcolor="white",
-            plot_bgcolor="white",
-            margin=dict(l=30, r=30, t=25, b=70),
-            xaxis=dict(visible=False, range=[-0.5, len(nodes) - 0.5]),
-            yaxis=dict(visible=False, range=[-0.5, 0.7]),
-        )
-        st.plotly_chart(flow, use_container_width=True)
+st.markdown("---")
+section_header(
+    "02 · Pathway Explorer",
+    "View the chronological events for a selected case.",
+)
+
+if not events.empty:
+    selected_case = st.selectbox(
+        "Choose a case",
+        sorted(events["case_id"].unique().tolist()),
+        key="pathway_case",
+    )
+
+    case_events = events[
+        events["case_id"] == selected_case
+    ].sort_values("timestamp").copy()
+
+    case_duration = (
+        case_events["timestamp"].max()
+        - case_events["timestamp"].min()
+    ).total_seconds() / 3600
+
+    p1, p2, p3 = st.columns(3)
+    p1.metric("Case ID", selected_case)
+    p2.metric("Recorded Events", len(case_events))
+    p3.metric("Case Duration", f"{case_duration:.2f} h")
+
+    timeline = case_events.copy()
+    timeline["step"] = range(1, len(timeline) + 1)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=timeline["timestamp"],
+        y=timeline["step"],
+        mode="lines+markers+text",
+        text=timeline["activity"],
+        textposition="top center",
+        line=dict(color=TEAL, width=3),
+        marker=dict(color=TEAL, size=12),
+        hovertemplate="%{text}<br>%{x}<extra></extra>",
+    ))
+    fig.update_yaxes(showticklabels=False, title="")
+    fig.update_xaxes(title="Event timestamp")
+
+    st.plotly_chart(
+        style_chart(fig, 380), use_container_width=True
+    )
+
+    st.markdown("**Journey Sequence**")
+    st.markdown(" → ".join(case_events["activity"].astype(str)))
 
     st.dataframe(
-        journey[["timestamp", "activity"]].rename(
-            columns={"timestamp": "Timestamp", "activity": "Activity"}
+        case_events[["case_id", "timestamp", "activity"]].rename(
+            columns={
+                "case_id": "Case ID",
+                "timestamp": "Timestamp",
+                "activity": "Activity",
+            }
         ),
+        use_container_width=True,
         hide_index=True,
-        width="stretch",
+    )
+else:
+    st.info("No journeys available for the current filters.")
+
+# =========================================================
+# 03. DELAY ANALYSIS
+# =========================================================
+
+st.markdown("---")
+section_header(
+    "03 · Delay Analysis",
+    "Elapsed gaps between consecutive recorded activities. "
+    "A gap alone does not prove a clinical delay.",
+)
+
+threshold = st.slider(
+    "Potential delay threshold (hours)",
+    min_value=0.5,
+    max_value=12.0,
+    value=DELAY_THRESHOLD,
+    step=0.5,
+)
+
+delay_events = gaps[gaps["gap_hours"] >= threshold].copy()
+
+a1, a2, a3 = st.columns(3)
+a1.metric("Potential Delay Gaps", len(delay_events))
+a2.metric("Cases With Gaps", delay_events["case_id"].nunique())
+a3.metric(
+    "Longest Gap",
+    f"{delay_events['gap_hours'].max():.2f} h"
+    if not delay_events.empty else "0.00 h",
+)
+
+if not delay_events.empty:
+    fig = px.bar(
+        delay_events.sort_values("gap_hours"),
+        x="gap_hours",
+        y="case_id",
+        color="activity",
+        orientation="h",
+        text="gap_hours",
+        labels={
+            "gap_hours": "Gap (hours)",
+            "case_id": "Case",
+            "activity": "Current activity",
+        },
+        color_discrete_sequence=[
+            TEAL, "#60A5FA", "#A78BFA", "#FBBF24", "#F472B6"
+        ],
+    )
+    fig.update_traces(
+        texttemplate="%{text:.2f} h",
+        textposition="outside",
+        cliponaxis=False,
+    )
+    st.plotly_chart(
+        style_chart(fig, 340), use_container_width=True
     )
 
-    section_heading("Activity Coverage", "Number of cases containing each activity.")
-    coverage = px.bar(
-        activity_summary.sort_values("case_count"),
+    delay_table = delay_events[
+        [
+            "case_id",
+            "previous_activity",
+            "activity",
+            "previous_timestamp",
+            "timestamp",
+            "gap_hours",
+        ]
+    ].rename(columns={
+        "case_id": "Case ID",
+        "previous_activity": "Previous Activity",
+        "activity": "Current Activity",
+        "previous_timestamp": "Previous Timestamp",
+        "timestamp": "Current Timestamp",
+        "gap_hours": "Gap (hours)",
+    })
+
+    st.dataframe(
+        delay_table, use_container_width=True, hide_index=True
+    )
+    st.download_button(
+        "Download Delay Report",
+        delay_table.to_csv(index=False).encode("utf-8"),
+        file_name="careflow_delay_report.csv",
+        mime="text/csv",
+    )
+else:
+    st.success(f"No gaps of {threshold:.1f} hours or more found.")
+
+# =========================================================
+# 04. DATA QUALITY
+# =========================================================
+
+st.markdown("---")
+section_header(
+    "04 · Data Quality",
+    "Validation checks use the full dataset, regardless of dashboard filters.",
+)
+
+missing_ids = int(df["case_id"].isna().sum())
+missing_activities = int(df["activity"].isna().sum())
+invalid_timestamps = int(df["timestamp"].isna().sum())
+duplicate_rows = int(df.duplicated().sum())
+invalid_rows = len(df) - len(valid_events)
+
+q1, q2, q3 = st.columns(3)
+q1.metric("Total Rows", len(df))
+q2.metric("Valid Events", len(valid_events))
+q3.metric("Rows Excluded", invalid_rows)
+
+quality_checks = pd.DataFrame([
+    {
+        "Check": "Missing case IDs",
+        "Issues Found": missing_ids,
+        "Status": "Pass" if missing_ids == 0 else "Review",
+    },
+    {
+        "Check": "Missing activities",
+        "Issues Found": missing_activities,
+        "Status": "Pass" if missing_activities == 0 else "Review",
+    },
+    {
+        "Check": "Invalid timestamps",
+        "Issues Found": invalid_timestamps,
+        "Status": "Pass" if invalid_timestamps == 0 else "Review",
+    },
+    {
+        "Check": "Duplicate rows",
+        "Issues Found": duplicate_rows,
+        "Status": "Pass" if duplicate_rows == 0 else "Review",
+    },
+])
+
+st.dataframe(
+    quality_checks, use_container_width=True, hide_index=True
+)
+
+if quality_checks["Issues Found"].sum() == 0 and invalid_rows == 0:
+    st.success("All displayed data-quality checks passed.")
+else:
+    st.warning("Some data-quality issues need review.")
+
+full_activity_summary = (
+    valid_events.groupby("activity")
+    .agg(case_count=("case_id", "nunique"))
+    .reset_index()
+    .sort_values("case_count")
+)
+
+if not full_activity_summary.empty:
+    fig = px.bar(
+        full_activity_summary,
         x="case_count",
         y="activity",
         orientation="h",
         text="case_count",
-        labels={"case_count": "Cases", "activity": ""},
         color_discrete_sequence=[TEAL],
+        labels={"case_count": "Number of cases", "activity": "Activity"},
     )
-    coverage.update_traces(textposition="outside")
-    st.plotly_chart(style_chart(coverage, 330), use_container_width=True)
-
-elif page == "Delay Analysis":
-    page_header(
-        "Delay & Transition Analysis",
-        "Identify longer time gaps between consecutive events in the same case.",
-    )
-    threshold = st.slider(
-        "Delay threshold (hours)",
-        min_value=0.5,
-        max_value=12.0,
-        value=2.0,
-        step=0.5,
-    )
-    valid_gaps = transitions.dropna(subset=["gap_hours"])
-    flagged = valid_gaps[valid_gaps["gap_hours"] >= threshold].copy()
-
-    x1, x2, x3 = st.columns(3)
-    x1.metric("Transitions Analysed", f"{len(valid_gaps):,}")
-    x2.metric("Flagged Gaps", f"{len(flagged):,}")
-    x3.metric(
-        "Longest Gap",
-        f"{valid_gaps['gap_hours'].max():.2f} h" if not valid_gaps.empty else "N/A",
+    fig.update_traces(textposition="outside", cliponaxis=False)
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(
+        style_chart(fig, 330), use_container_width=True
     )
 
-    section_heading("Time Between Activities", "Gaps are calculated from timestamps within each case.")
-    if valid_gaps.empty:
-        st.info("No consecutive activity timestamps are available for comparison.")
-    else:
-        gap_fig = px.bar(
-            valid_gaps,
-            x="case_id",
-            y="gap_hours",
-            color="to_activity",
-            hover_data=["from_activity", "to_activity", "timestamp"],
-            labels={
-                "case_id": "Case",
-                "gap_hours": "Gap (hours)",
-                "to_activity": "Next activity",
-            },
-        )
-        gap_fig.add_hline(
-            y=threshold,
-            line_dash="dash",
-            line_color="#D97706",
-            annotation_text=f"Threshold: {threshold:.1f} h",
-        )
-        st.plotly_chart(style_chart(gap_fig, 360), use_container_width=True)
+st.markdown("**Dataset Preview**")
+st.dataframe(
+    df.head(100), use_container_width=True, hide_index=True
+)
+st.download_button(
+    "Download Loaded Dataset",
+    df.to_csv(index=False).encode("utf-8"),
+    file_name="careflow_dataset.csv",
+    mime="text/csv",
+)
 
-    section_heading("Flagged Transitions", "These are time gaps for review, not proof of clinical problems.")
-    if flagged.empty:
-        st.success("No gaps meet the selected threshold.")
-    else:
-        st.dataframe(
-            flagged[
-                ["case_id", "from_activity", "to_activity", "gap_hours", "timestamp"]
-            ].rename(
-                columns={
-                    "case_id": "Case",
-                    "from_activity": "From activity",
-                    "to_activity": "To activity",
-                    "gap_hours": "Gap (hours)",
-                    "timestamp": "Timestamp",
-                }
-            ).sort_values("Gap (hours)", ascending=False),
-            hide_index=True,
-            width="stretch",
-        )
+# =========================================================
+# 05. EVENT LOG
+# =========================================================
 
-elif page == "Data Quality":
-    page_header(
-        "Data Quality & Validation",
-        "Review completeness, timestamp validity and duplicate event records.",
+st.markdown("---")
+section_header(
+    "05 · Event Log",
+    "Inspect and export the event records matching the shared filters.",
+)
+
+e1, e2, e3 = st.columns(3)
+e1.metric("Filtered Events", len(events))
+e2.metric("Filtered Cases", events["case_id"].nunique())
+e3.metric("Activities", events["activity"].nunique())
+
+if not events.empty:
+    st.dataframe(
+        events, use_container_width=True, hide_index=True
     )
-
-    raw = pd.read_csv(data_path)
-    required = ["case_id", "activity", "timestamp"]
-    missing_columns = [column for column in required if column not in raw.columns]
-    missing_values = int(raw[required].isna().any(axis=1).sum()) if not missing_columns else 0
-    invalid_timestamps = (
-        int(pd.to_datetime(raw["timestamp"], errors="coerce").isna().sum())
-        if "timestamp" in raw.columns else len(raw)
-    )
-    duplicate_rows = int(raw.duplicated().sum())
-    valid_rows = len(df)
-
-    q1, q2, q3, q4 = st.columns(4)
-    q1.metric("Raw Rows", f"{len(raw):,}")
-    q2.metric("Valid Event Rows", f"{valid_rows:,}")
-    q3.metric("Invalid Timestamps", f"{invalid_timestamps:,}")
-    q4.metric("Duplicate Rows", f"{duplicate_rows:,}")
-
-    checks = [
-        {
-            "Check": "Required columns",
-            "Result": "PASS" if not missing_columns else "FAIL",
-            "Details": "All required columns present" if not missing_columns
-            else "Missing: " + ", ".join(missing_columns),
-        },
-        {
-            "Check": "Missing required values",
-            "Result": "PASS" if missing_values == 0 else "REVIEW",
-            "Details": f"{missing_values} row(s) have missing required fields",
-        },
-        {
-            "Check": "Timestamp parsing",
-            "Result": "PASS" if invalid_timestamps == 0 else "REVIEW",
-            "Details": f"{invalid_timestamps} invalid or missing timestamp(s)",
-        },
-        {
-            "Check": "Duplicate rows",
-            "Result": "PASS" if duplicate_rows == 0 else "REVIEW",
-            "Details": f"{duplicate_rows} duplicate row(s)",
-        },
-    ]
-    section_heading("Validation Results", "Automated checks against the loaded CSV.")
-    st.dataframe(pd.DataFrame(checks), hide_index=True, width="stretch")
-    st.caption(
-        "Rows with missing required values or invalid timestamps are excluded from "
-        "the displayed process analysis. Review the original CSV before relying on results."
-    )
-
-    section_heading("Dataset Profile")
-    profile = pd.DataFrame(
-        {
-            "Metric": ["Unique cases", "Unique activities", "First event", "Last event"],
-            "Value": [
-                str(df["case_id"].nunique()),
-                str(df["activity"].nunique()),
-                str(df["timestamp"].min()),
-                str(df["timestamp"].max()),
-            ],
-        }
-    )
-    st.dataframe(profile, hide_index=True, width="stretch")
-
-elif page == "Event Log":
-    page_header(
-        "Event Log Explorer",
-        "Filter, inspect and export the underlying synthetic event records.",
-    )
-    f1, f2 = st.columns(2)
-    with f1:
-        case_filter = st.multiselect(
-            "Filter by case",
-            sorted(df["case_id"].dropna().unique().tolist()),
-        )
-    with f2:
-        activity_filter = st.multiselect(
-            "Filter by activity",
-            sorted(df["activity"].dropna().unique().tolist()),
-        )
-
-    filtered = df.copy()
-    if case_filter:
-        filtered = filtered[filtered["case_id"].isin(case_filter)]
-    if activity_filter:
-        filtered = filtered[filtered["activity"].isin(activity_filter)]
-
-    st.caption(f"Showing {len(filtered):,} of {len(df):,} valid event rows.")
-    st.dataframe(filtered, hide_index=True, width="stretch")
-
     st.download_button(
-        "Download filtered event log (CSV)",
-        data=filtered.to_csv(index=False).encode("utf-8"),
+        "Download Filtered Event Log",
+        events.to_csv(index=False).encode("utf-8"),
         file_name="careflow_filtered_event_log.csv",
         mime="text/csv",
-        use_container_width=True,
     )
+else:
+    st.info("No event records match the selected filters.")
+
+# =========================================================
+# FOOTER
+# =========================================================
 
 st.markdown("---")
 st.markdown(
-    '<div class="footer">CAREFLOW • INFOTACT SOLUTIONS • '
-    'Synthetic data demonstration only • Not for clinical decision-making</div>',
+    """
+    <div class="footer">
+        CAREFLOW · CLINICAL PATHWAY PROCESS MINING<br>
+        INFOTACT SOLUTIONS · Educational demonstration using synthetic data
+    </div>
+    """,
     unsafe_allow_html=True,
 )
