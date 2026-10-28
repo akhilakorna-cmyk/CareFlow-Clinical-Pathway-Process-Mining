@@ -1,120 +1,43 @@
-\# CareFlow: Clinical Pathway Process Mining
+# CareFlow: Clinical Pathway Process Mining
 
-\## Mid-Review Presentation — 26 October 2026
+## Mid-Review Presentation — 26 October 2026
 
+**Student:** Korna Akhila  
+**Branch:** B.Tech ECE (VLSI)  
+**College:** Narayana Engineering College, Nellore  
+**Project:** Infotact Solutions CareFlow: Clinical Pathway Process Mining
 
+---
 
-\### Slide 1: Title
+### Slide 1: Introduction
 
-\- Project: CareFlow — Clinical Pathway Process Mining
+CareFlow is a process-mining project that analyzes clinical activity sequences, calculates case durations, identifies potential delays, and presents results through an interactive Streamlit dashboard.
 
-\- Student: Korna Akhila
+**Current status:** The project uses synthetic demonstration data because the official dataset has not yet been received.
 
-\- Branch: B.Tech ECE (VLSI)
+### Slide 2: Problem Statement and Objectives
 
-\- College: Narayana Engineering College, Nellore
+**Problem statement:** Understanding activity sequences and time gaps in clinical workflows can be challenging when event records are presented only as raw data.
 
+**Objectives:**
+- Analyze clinical activity sequences.
+- Calculate the duration of each case.
+- Identify potential delays between activities.
+- Validate event-log data quality.
+- Visualize results through a Streamlit dashboard.
 
+### Slide 3: Technologies Used
 
-\### Slide 2: Problem Statement and Objectives
+- Python for data processing and analysis.
+- Pandas for event-log manipulation.
+- Streamlit for dashboard development.
+- Plotly for charts and visualizations.
+- Pytest for automated testing.
+- Git and GitHub for version control.
+- CSV for storing event-log records.
 
-\- Understand clinical activity sequences.
+### Slide 4: System Architecture
 
-\- Calculate case durations.
+**CSV Event Log → Data Loading → Data Validation → Process Analysis → Delay Detection → Streamlit Dashboard**
 
-\- Identify potential delays between activities.
-
-\- Present insights using a Streamlit dashboard.
-
-
-
-\### Slide 3: System Architecture
-
-CSV Event Log → Data Validation → Process Analysis → Delay Detection → Streamlit Dashboard
-
-
-
-\### Slide 4: Dataset and Data Quality
-
-\- Cases: 3
-
-\- Events: 18
-
-\- Unique activities: 6
-
-\- Missing case IDs: 0
-
-\- Missing activities: 0
-
-\- Invalid timestamps: 0
-
-\- Dataset: Synthetic demonstration data only.
-
-
-
-\### Slide 5: Process Analysis
-
-\- C001 duration: 5.00 hours
-
-\- C002 duration: 6.50 hours
-
-\- C003 duration: 5.75 hours
-
-\- Average duration: 5.75 hours
-
-\- Potential delay transition: Treatment → Discharge
-
-
-
-\### Slide 6: Dashboard and Results
-
-\- Total cases and events
-
-\- Activity frequency chart
-
-\- Case duration chart
-
-\- Clinical activity sequences
-
-\- Delay analysis chart
-
-\- Data quality checks
-
-
-
-\### Slide 7: Advantages and Limitations
-
-\*\*Advantages\*\*
-
-\- Visualizes activity sequences.
-
-\- Summarizes case durations and activity frequencies.
-
-\- Checks data quality.
-
-\- Highlights potential time gaps.
-
-
-
-\*\*Limitations\*\*
-
-\- Uses only three synthetic cases.
-
-\- Does not establish clinical significance.
-
-\- Requires authorized real data for real-world evaluation.
-
-
-
-\### Slide 8: Conclusion and Future Scope
-
-\- Completed the process analysis workflow and dashboard.
-
-\- Added automated tests and visualizations.
-
-\- Future work: integrate the official dataset when available and expand analysis.
-
-
-
-\*\*Disclaimer:\*\* This project currently uses synthetic data, not real patient records.
-
+The workflow loads the data, checks its quality, reconstructs activity sequences, calculates durations, detects potential time gaps, and displays
