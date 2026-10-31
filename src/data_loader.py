@@ -43,3 +43,5 @@ def validate_event_log(df):
         and results["invalid_timestamps"] == 0
     )
     return results
+
+
