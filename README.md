@@ -1,3 +1,4 @@
+
 # CareFlow: Clinical Pathway Process Mining
 
 **Project:** Infotact Solutions CareFlow  
@@ -102,8 +103,6 @@ py -3.13 -m venv .venv
 
 ### Step 3: Install dependencies
 
-On Windows PowerShell, use the virtual environment's Python executable directly:
-
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
@@ -124,7 +123,7 @@ Run the process-analysis tests using:
 .\.venv\Scripts\python.exe -m pytest .\src\test_process_analysis.py -v
 ```
 
-The latest recorded test run passed all four tests:
+The previously recorded test run passed all four tests:
 
 - `test_calculate_durations`
 - `test_summarize_activities`
@@ -169,3 +168,18 @@ Update this checklist when each remaining task has been verified.
 ## 12. GitHub Repository
 
 [CareFlow: Clinical Pathway Process Mining](https://github.com/akhilakorna-cmyk/CareFlow-Clinical-Pathway-Process-Mining)
+
+## 13. Development History
+
+| Date | Development Activity |
+|---|---|
+| November 2, 2026 | Reviewed project documentation and verified repository status. |
+
+### Current Development Notes
+
+- Project development uses Python 3.13.
+- The Streamlit dashboard uses synthetic demonstration data.
+- Automated process-analysis tests are available.
+- The repository is maintained using Git and GitHub.
+
+**Last documentation update:** November 2, 2026
