@@ -2,6 +2,7 @@
 import pandas as pd
 
 from src.process_analysis import (
+    prepare_events,
     calculate_durations,
     summarize_activities,
     reconstruct_journeys,
@@ -61,7 +62,8 @@ def test_reconstruct_journeys():
     assert "Registration" in journeys.iloc[0]["activity_sequence"]
     assert "Lab Test" in journeys.iloc[0]["activity_sequence"]
     assert "Discharge" in journeys.iloc[0]["activity_sequence"]
-    
+
+
 def test_detect_delays():
     events, _ = calculate_durations(sample_events())
     delays = detect_delays(events, threshold_hours=2.0)
@@ -69,3 +71,47 @@ def test_detect_delays():
     assert not delays.empty
     assert (delays["gap_hours"] >= 2.0).all()
 
+
+def test_prepare_events_validation():
+    data = pd.DataFrame({
+        "case_id": ["C001", "C001", "C002"],
+        "activity": ["Lab Test", "Registration", "Diagnosis"],
+        "timestamp": [
+            "2026-09-01 10:00:00",
+            "2026-09-01 08:00:00",
+            "invalid",
+        ],
+    })
+
+    events = prepare_events(data)
+
+    assert len(events) == 2
+    assert events["timestamp"].is_monotonic_increasing
+    assert events.iloc[0]["activity"] == "Registration"
+
+
+def test_prepare_events_missing_columns():
+    data = pd.DataFrame({
+        "case_id": ["C001"],
+        "activity": ["Registration"],
+    })
+
+    try:
+        prepare_events(data)
+        assert False, "Expected ValueError for missing timestamp"
+    except ValueError as error:
+        assert "timestamp" in str(error)
+
+
+def test_single_event_case():
+    data = pd.DataFrame({
+        "case_id": ["C003"],
+        "activity": ["Registration"],
+        "timestamp": ["2026-09-03 08:00:00"],
+    })
+
+    events, durations = calculate_durations(data)
+
+    assert len(events) == 1
+    assert durations.iloc[0]["case_duration_hours"] == 0
+    assert pd.isna(events.iloc[0]["gap_hours"])
