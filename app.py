@@ -867,12 +867,19 @@ invalid_timestamps = int(
 )
 
 # Data quality metric cards
-q1, q2, q3, q4 = st.columns(4)
+
+data_quality_rate = (
+    (valid_row_count / total_rows) * 100
+    if total_rows > 0 else 0
+)
+
+q1, q2, q3, q4, q5 = st.columns(5)
 
 q1.metric("Total Rows", f"{total_rows:,}")
 q2.metric("Valid Events", f"{valid_row_count:,}")
 q3.metric("Rows Excluded", f"{invalid_rows:,}")
 q4.metric("Duplicate Rows", f"{duplicate_rows:,}")
+q5.metric("Data Quality Rate", f"{data_quality_rate:.1f}%")
 
 # Validation report
 section_header(
