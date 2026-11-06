@@ -184,4 +184,4 @@ Update this checklist when each remaining task has been verified.
 - Automated process-analysis tests are available.
 - The repository is maintained using Git and GitHub.
 
-**Last documentation update:** November 2, 2026
+**Last documentation update:** November 6, 2026
