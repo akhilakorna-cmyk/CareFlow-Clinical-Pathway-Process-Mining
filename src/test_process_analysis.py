@@ -115,3 +115,33 @@ def test_single_event_case():
     assert len(events) == 1
     assert durations.iloc[0]["case_duration_hours"] == 0
     assert pd.isna(events.iloc[0]["gap_hours"])
+
+from src.data_loader import validate_event_log
+
+def test_validate_event_log_success():
+    data = sample_events()
+    results = validate_event_log(data)
+
+    assert results["valid"] is True
+    assert results["row_count"] == 5
+    assert results["out_of_order_events"] == 0
+    assert results["out_of_order_cases"] == 0
+
+
+def test_validate_event_log_out_of_order():
+    data = pd.DataFrame({
+        "case_id": ["C001", "C001", "C001"],
+        "activity": ["Registration", "Lab Test", "Discharge"],
+        "timestamp": [
+            "2026-09-01 10:00:00",
+            "2026-09-01 08:00:00",
+            "2026-09-01 12:00:00",
+        ],
+    })
+
+    results = validate_event_log(data)
+
+    assert results["out_of_order_events"] == 1
+    assert results["out_of_order_cases"] == 1
+    assert results["valid"] is False
+

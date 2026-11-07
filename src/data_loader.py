@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import pandas as pd
 
@@ -92,9 +91,19 @@ def validate_event_log(df):
         "timestamp": timestamps.loc[valid_cases],
     }).dropna()
 
+    out_of_order_cases = 0
+
     for _, group in ordered_data.groupby("case_id", sort=False):
-        if not group["timestamp"].is_monotonic_increasing:
-            results["out_of_order_events"] += 1
+        out_of_order_count = int(
+            group["timestamp"].diff().lt(pd.Timedelta(0)).sum()
+        )
+
+        results["out_of_order_events"] += out_of_order_count
+
+        if out_of_order_count > 0:
+            out_of_order_cases += 1
+
+    results["out_of_order_cases"] = out_of_order_cases
 
     # Overall validation status
     results["valid"] = (
@@ -103,6 +112,7 @@ def validate_event_log(df):
         and results["missing_activities"] == 0
         and results["invalid_timestamps"] == 0
         and results["duplicate_rows"] == 0
+        and results["out_of_order_events"] == 0
     )
 
     return results
